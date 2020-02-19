@@ -29,9 +29,9 @@ def findMinMax(data):
 def normalizeData(data, foundMinMax):
     for i in range(len(data)):
         for j in range(len(data[i])):
-            data[i][j] = ((data[i][j] - foundMinMax[j][0]) / (foundMinMax[j][1] - foundMinMax[j][0])) * 100
-            if j == 1 or j == 4:
-                data[i][j] = data[i][j] * 5
+            data[i][j] = ((data[i][j] - foundMinMax[j][0]) / (foundMinMax[j][1] - foundMinMax[j][0])) 
+#            if j == 1 or j == 4:
+#                data[i][j] = data[i][j] * 3
     return data
 
 # add labels to the dates

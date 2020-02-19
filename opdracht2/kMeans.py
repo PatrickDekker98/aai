@@ -2,6 +2,8 @@ import dataProcessing
 import numpy as np
 import operator
 import random
+import statistics
+import matplotlib
 import matplotlib.pyplot as plt
 from collections import Counter
 
@@ -41,7 +43,6 @@ get clusters based on centroids
 """
 def getClusters(data, centroids):
     clusterList = list()
-    #print("centroids", centroids)
     for centroid in centroids:
         clusterList.append(list())
     for key, day in enumerate(data):
@@ -66,6 +67,13 @@ calculate new centroids by calculating the mean point within a cluster
 def newCentroids(data, clusters):
     return [calcMean(data, cluster) for cluster in clusters]
 
+def centroidsAreEaqual(cent1, cent2):
+    for cen1, cen2 in zip(cent1, cent2):
+        if not np.array_equal(cen1, cen2):
+            return False
+    return True
+
+
 """
 recursively determine best cluster, 
 first calculate new cluster, compare with old cluster, if it dit not change return it
@@ -73,21 +81,27 @@ if it is not the same calculate new centroids and do it all again
 """
 def RdetermineBestClusters(data, centroids, cluster):
     newcluster = getClusters(data, centroids)
-    if (newcluster == cluster):
-        return cluster
+    newcentroids = newCentroids(data, newcluster)
+    if centroidsAreEaqual(newcentroids, centroids):
+    #if newcentroids == centroids:
+        return newcluster
     else:
-        centroids = newCentroids(data, newcluster)
-        return RdetermineBestClusters(data, centroids, newcluster)
+        return RdetermineBestClusters(data, newcentroids, newcluster)
 
 """
 
 """
 def determineBestClusterForK(data, K):
     centroids = [data[random.randint(1, len(data)-1)] for i in range(K)]
-    #print(centroids)
     cluster = getClusters(data, centroids)
     centroids = newCentroids(data, cluster)
-    return RdetermineBestClusters(data, centroids, cluster)
+    newCluster = getClusters(data, centroids)
+    while (cluster != newCluster):
+        cluster = newCluster
+        centroids = newCentroids(data, cluster)
+        newCluster = getClusters(data, centroids)
+    return cluster
+    #return RdetermineBestClusters(data, centroids, cluster)
 
 """
 """
@@ -95,12 +109,13 @@ def calcIntraDistance(centroid, cluster, data):
     distance = 0
     for index in cluster:
         distance += getEuclidean(data[index], centroid)
-    return distance / len(cluster)
+    return distance #/ len(cluster)
 
 """
 """
 def getIntraDistanceForClusterForK(data, K):
     centroids = [data[i] for i in random.sample(range(0, len(data)-1), K)]
+    #print(centroids)
     clusters = getClusters(data, centroids)
     centroids = newCentroids(data, clusters)
     clusters = RdetermineBestClusters(data, centroids, clusters)
@@ -115,20 +130,41 @@ def printLabelsForCluster(clusters, labels):
             print(labels[index])
         print("\n")
 
-def getIntraDifference(intraDistances):
-    return max(intraDistances) - min(intraDistances)
+def getIntraMean(intraDistances):
+    return statistics.mean(intraDistances)
+
+def getAggregateIC(intraDistances):
+    return sum(intraDistances)
+
+def getIntraDiff(intraDistances):
+    return max(intraDistances) - min(intraDistances) #statistics.mean(intraDistances)
 
 """
 """
 def determineK(data):
-    for K in range(2, 5):
-        getIntraDifference(getIntraDistanceForClusterForK(data, K))
-
+    Krange = range(2, 15)
+    icList = list()
+    sample = 35 
+    for K in Krange:
+        best = 10000000000000000
+        for i in range(sample):
+            #intraMean = getIntraMean(getIntraDistanceForClusterForK(data, K))
+            intraMean = getAggregateIC(getIntraDistanceForClusterForK(data, K))
+            #print(intraMean)
+            if intraMean < best:
+                best = intraMean
+            #score += intraMean
+        icList.append(best)
+    plt.plot(Krange, icList, marker='o')
+    plt.show()
 
 
 data = dataProcessing.dataReader('dataset1.csv') 
 validation = dataProcessing.dataReader('validation1.csv') 
 dates = dataProcessing.datesReader('dataset1.csv')
+
+#data = dataProcessing.normalizeData(data, dataProcessing.findMinMax(data))
+
 
 labels = dataProcessing.addLabels(dates, '2000')
 #validationLabels = addLabels(validationDates, '2001')
