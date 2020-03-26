@@ -1,7 +1,7 @@
 from neuralnode import *
 from layer import *
 import random
-#from layer import layer, input_layer, output_layer
+import time
 
 class neuralnetwork:
 
@@ -15,9 +15,13 @@ class neuralnetwork:
     def print_output(self):
         for output_node in self.layers[len(self.layers) - 1].nodes:
             print(output_node.get_output())
+            #print(round(output_node.get_output()))
     
     def get_output(self):
-        return [output_node.get_output() for output_node in self.layers[len(self.layers) - 1].nodes]
+        return np.array([output_node.get_output() for output_node in self.layers[len(self.layers) - 1].nodes])
+
+    def get_output_rounded(self):
+        return np.array([output_node.get_output_round() for output_node in self.layers[len(self.layers) - 1].nodes])
 
     def set_input(self, inputs):
         for inpune, inpu in zip(self.layers[0].nodes, inputs):
@@ -44,10 +48,33 @@ class neuralnetwork:
                     neuron.update(i)
 
     def train_back_prop(self):
+        #while not self.check_training():
+        while self.cost_function() > 2:
+            for trainData in self.trainingData:
+                self.set_input(trainData[0])
+                for neuron in self.layers[len(self.layers)-1].nodes:
+                    neuron.reset_error_sum()
+                for neuron, i in zip(self.layers[len(self.layers)-1].nodes, trainData[1]):
+                    neuron.back_prop_output(i)
+                for layer in reversed(self.layers):
+                    for neuron in layer.nodes:
+                        neuron.back_prop()
+                #self.print_output()
+            #print(self.cost_function() )
+
+            #time.sleep(0.1)
+
+    def print_all_training_data(self):
         for trainData in self.trainingData:
             self.set_input(trainData[0])
-            for neuron, i in zip(self.layers[len(self.layers)-1].nodes, trainData[1]):
-                neuron.back_prop(i) 
+            print(self.layers[len(self.layers) - 1].return_output())
+
+    def cost_function(self):
+        C = np.zeros(len(self.layers[len(self.layers) - 1].nodes))
+        for trainData in self.trainingData:
+            self.set_input(trainData[0])
+            C += np.absolute(np.square(trainData[1] - self.get_output()))
+        return (1 / len(trainData)) * np.absolute(sum(C) / len(trainData))
 
 def printNorGate():
     norGate = neuralnetwork(3, [[-0.5]])
@@ -92,14 +119,18 @@ def deltaRule():
 def backProp():
     xorGate = neuralnetwork(2, [[0.5,-1.5],[1.5]])
     randlist = list()
-    xorGate.set_weights(1,0, [ random.uniform(-1,1) for i in range(2) ])
-    xorGate.set_weights(1,1, [ random.uniform(-1,1) for i in range(2) ])
-    xorGate.set_weights(2,0, [ random.uniform(-1,1) for i in range(2) ])
+    xorGate.set_weights(1,0, [ 0.2, -0.4 ])
+    xorGate.set_weights(1,1, [ 0.7, 0.1])
+    xorGate.set_weights(2,0, [ 0.6, 0.9 ])
+#    xorGate.set_weights(1,0, [ random.uniform(-1,1) for i in range(2) ])
+#    xorGate.set_weights(1,1, [ random.uniform(-1,1) for i in range(2) ])
+#    xorGate.set_weights(2,0, [ random.uniform(-1,1) for i in range(2) ])
+    xorGate.add_train_data([1,1], [0])
     xorGate.add_train_data([0,0], [0])
     xorGate.add_train_data([0,1], [1])
     xorGate.add_train_data([1,0], [1])
-    xorGate.add_train_data([1,1], [0])
-    
+    xorGate.train_back_prop()
+
     xorGate.set_input([0,0])
     xorGate.print_output()
     xorGate.set_input([0,1])
@@ -110,9 +141,9 @@ def backProp():
     xorGate.print_output()
 
 
-
-#printNorGate()
-#deltaRule()
-backProp()
+if __name__ == "__main__":
+    #printNorGate()
+    #deltaRule()
+    backProp()
 
 

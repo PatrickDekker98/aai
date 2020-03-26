@@ -1,33 +1,69 @@
 import numpy as np
 from layer import * 
+import random 
+
+def sigmoid(x):
+    return 1/ (1 + np.exp(-x))
+
+def der_sigmoid(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+def tanh(x):
+    return np.tanh(x)
+
+def der_tanh(x):
+    return 1.0 - np.tanh(x)**2
 
 class neuron:
     def __init__(self, inputs = layer(), threshold = 0):
         self.inputs = inputs
-        self.weights = [0]*len(inputs.nodes)
+        self.weights = [random.uniform(-1,1) for i in range(len(inputs.nodes)) ]
         self.threshold = threshold
         self.output = 0
-        self.learning_rate = 0.1
+        self.learning_rate = 0.2
+        self.weights_out = list()
+        self.error_sum = 0
 
     def set_threshold(self, threshold):
         self.threshold = threshold
 
     def get_output(self):
-        return int(sum([i * w for i, w in zip(self.inputs.return_output(), self.weights)]) >= self.threshold)
+        return tanh(sum([i * w for i, w in zip(self.inputs.return_output(), self.weights)]))
+
+    def get_output_round(self):
+        return round(self.get_output())
 
     def update(self, desired_output):
         for i, node in enumerate(self.inputs.nodes):
+            self.weights[i] += self.learning_rate * node.get_output() * der_tanh(sum([i * w for i, w in zip(self.inputs.return_output(), self.weights)])) * (desired_output - self.get_output())
             delta = self.learning_rate * node.get_output() * (self.get_output() - desired_output)
             self.weights[i] -= delta
 
-    def back_prop(self, desired_output):
-        #for inp in self.inputs.nodes:
+    def back_prop_output(self, desired_output):
+        error = der_tanh(sum([i * w for i, w in zip(self.inputs.return_output(), self.weights)])) * (desired_output - self.get_output())
+        for i, nw in enumerate(zip(self.inputs.nodes, self.weights)):
+            self.weights[i] = nw[1] + self.learning_rate * nw[0].get_output() * error
+            nw[0].error_sum += (error * nw[1])
+            #nw[0].back_prop(error, nw[1])
             
-        pass
-
+    def back_prop(self):
+        #error = der_tanh(sum([i * w for i, w in zip(self.inputs.return_output(), self.weights)])) * pref_error * pref_weight
+        error = der_tanh(sum([i * w for i, w in zip(self.inputs.return_output(), self.weights)])) * self.error_sum 
+        for i, nw in enumerate(zip(self.inputs.nodes, self.weights)):
+            self.weights[i] = nw[1] + self.learning_rate * nw[0].get_output() * error 
+            nw[0].error_sum += (error * nw[1])
+            #nw[0].back_prop(error, nw[1])
+    
+    def reset_error_sum(self):
+        self.error_sum = 0
+        for inp in self.inputs.nodes:
+            inp.reset_error_sum()
+    
 class input_neuron(neuron):
     def __init__(self, output):
         self.output = output
+        self.weights_out = list()
+        self.error_sum = 0
 
     def set_threshold(self, threshold):
         pass
@@ -36,12 +72,15 @@ class input_neuron(neuron):
         return self.output
 
     def set_output(self, output):
-        self.output = int(output >= 1)
+        self.output = output 
 
     def update(self, desiredOutput):
         pass
     
-    def back_prop(self, desired_output):
+    def back_prop(self ):
+        pass
+    
+    def reset_error_sum(self):
         pass
 """
 def norGateF():
